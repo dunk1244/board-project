@@ -1,6 +1,13 @@
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(()=>console.log("DB 연결 성공"))
+  .catch(err=>console.log(err));
 
 app.use(express.json());
 app.use(express.static(__dirname));
