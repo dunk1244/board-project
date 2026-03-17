@@ -114,7 +114,3 @@ app.delete('/posts/:id', (req, res) => {
     res.status(403).send("관리자만 삭제 가능");
   }
 });
-
-app.listen(PORT, () => {
-  console.log(`서버 실행중: http://localhost:${PORT}`);
-});
