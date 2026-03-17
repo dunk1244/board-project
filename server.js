@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -88,6 +88,10 @@ app.post('/posts/:id/like', (req, res) => {
   const post = posts.find(p => p.id == req.params.id);
   if (post) post.likes++;
   res.sendStatus(200);
+});
+
+app.listen(PORT, () => {
+  console.log(`서버 실행중: ${PORT}`);
 });
 
 // 비추천
