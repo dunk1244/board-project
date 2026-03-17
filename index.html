@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>금빡이 게시판</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#fff; }
+.container { width:1000px; margin:20px auto; }
+h1 { border-bottom:2px solid #000; padding-bottom:8px; }
+
+.tabs { margin-top:10px; }
+.tab { display:inline-block; padding:6px 12px; border:1px solid #ccc; cursor:pointer; }
+.tab.active { background:#000; color:#fff; }
+
+button { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; }
+button:hover { background:#f2f2f2; }
+
+input, textarea { width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; }
+textarea { height:200px; }
+
+.row { display:flex; border-bottom:1px solid #ddd; padding:6px 0; }
+.header { font-weight:bold; background:#f5f5f5; }
+.cell { flex:1; text-align:center; }
+.title { flex:5; text-align:left; cursor:pointer; }
+
+.write-btn-box { text-align:right; margin-top:10px; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>🔥 금빡이 게시판</h1>
+
+<!-- 로그인 선택 -->
+<div id="authSelect">
+  <button onclick="showLogin()">로그인</button>
+  <button onclick="showRegister()">회원가입</button>
+</div>
+
+<!-- 로그인 -->
+<div id="loginBox" style="display:none;">
+  <h3>로그인</h3>
+  <input id="loginId" placeholder="아이디">
+  <input id="loginPw" type="password" placeholder="비밀번호">
+  <button onclick="login()">로그인</button>
+<button onclick="goBack()">뒤로가기</button>
+</div>
+
+<!-- 회원가입 -->
+<div id="registerBox" style="display:none;">
+  <h3>회원가입</h3>
+  <input id="regId" placeholder="아이디">
+  <input id="regPw" type="password" placeholder="비밀번호">
+  <button onclick="register()">회원가입</button>
+<button onclick="goBack()">뒤로가기</button>
+</div>
+
+<!-- 로그인 상태 -->
+<div id="userBox" style="display:none;">
+  <span id="userText"></span>
+  <button onclick="logout()">로그아웃</button>
+</div>
+
+<!-- 게시판 -->
+<div id="board" style="display:none;">
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('all', event)">전체</div>
+  <div class="tab" onclick="setTab('best', event)">베스트</div>
+</div>
+
+<div id="writeBox" style="display:none;">
+  <h3>글 작성</h3>
+  <input id="title" placeholder="제목">
+  <textarea id="content"></textarea>
+  <button onclick="addPost()">작성</button>
+  <button onclick="showList()">취소</button>
+</div>
+
+<div id="listBox">
+
+<div class="row header">
+  <div class="cell">번호</div>
+  <div class="cell title">제목</div>
+  <div class="cell">작성자</div>
+  <div class="cell">조회</div>
+  <div class="cell">추천</div>
+</div>
+
+<div id="posts"></div>
+
+<div class="write-btn-box">
+  <button onclick="showWrite()">글쓰기</button>
+</div>
+
+</div>
+</div>
+
+</div>
+
+<script>
+let currentUser = null;
+let currentRole = null;
+let currentTab = "all";
+
+/* 화면 전환 */
+function showLogin(){
+  document.getElementById("authSelect").style.display="none";
+  document.getElementById("loginBox").style.display="block";
+  document.getElementById("registerBox").style.display="none";
+}
+function showRegister(){
+  document.getElementById("authSelect").style.display="none";
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("registerBox").style.display="block";
+}
+
+/* 회원가입 */
+function register(){
+  fetch('/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      id: regId.value,
+      pw: regPw.value
+    })
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.success){
+      alert("회원가입 성공");
+      showLogin();
+    } else {
+      alert("이미 존재하는 아이디");
+    }
+  });
+}
+
+/* 로그인 */
+function login(){
+  fetch('/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      id: loginId.value,
+      pw: loginPw.value
+    })
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.success){
+      currentUser = data.id;
+      currentRole = data.role;
+
+      localStorage.setItem("user", currentUser);
+      localStorage.setItem("role", currentRole);
+
+      enterBoard();
+    } else {
+      alert("로그인 실패");
+    }
+  });
+}
+
+/* 공통 진입 */
+function enterBoard(){
+  document.getElementById("authSelect").style.display="none";
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("registerBox").style.display="none";
+
+  document.getElementById("userBox").style.display="block";
+  document.getElementById("userText").innerText = currentUser + " ("+currentRole+")";
+
+  document.getElementById("board").style.display="block";
+
+  showList();
+}
+
+/* 로그아웃 */
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
+
+/* 글쓰기 */
+function showWrite(){
+  writeBox.style.display="block";
+  listBox.style.display="none";
+  title.value=""; content.value="";
+}
+
+/* 글 작성 */
+function addPost(){
+  fetch('/posts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      title:title.value,
+      content:content.value,
+      author:currentUser
+    })
+  }).then(showList);
+}
+
+/* 목록 */
+function showList(){
+  writeBox.style.display="none";
+  listBox.style.display="block";
+
+  fetch('/posts')
+    .then(res=>res.json())
+    .then(data=>{
+      let filtered = currentTab==="best"
+        ? data.filter(p=>p.likes>=2)
+        : data;
+
+      posts.innerHTML="";
+
+      filtered.slice().reverse().forEach((p,i)=>{
+        posts.innerHTML+=`
+        <div class="row">
+          <div class="cell">${filtered.length-i}</div>
+          <div class="cell title" onclick="showDetail(${p.id})">${p.title}</div>
+          <div class="cell">${p.author}</div>
+          <div class="cell">${p.views}</div>
+          <div class="cell">${p.likes}</div>
+        </div>`;
+      });
+    });
+}
+
+/* 상세 */
+function showDetail(id){
+  fetch('/posts/'+id+'/view')
+    .then(res=>res.json())
+    .then(renderDetail);
+}
+
+function loadDetail(id){
+  fetch('/posts/'+id)
+    .then(res=>res.json())
+    .then(renderDetail);
+}
+
+function renderDetail(p){
+  posts.innerHTML=`
+    <h2>${p.title}</h2>
+    <p>${p.content}</p>
+    <p>${p.author} | 조회 ${p.views}</p>
+
+    <button onclick="like(${p.id})">👍 ${p.likes}</button>
+    <button onclick="dislike(${p.id})">👎 ${p.dislikes}</button>
+
+    <br><br>
+    <button onclick="deletePost(${p.id})">삭제</button>
+    <button onclick="showList()">목록</button>
+
+    <h4>댓글</h4>
+    <input id="c${p.id}">
+    <button onclick="addComment(${p.id})">댓글</button>
+
+    ${(p.comments||[]).map(c=>`<p>💬 ${c}</p>`).join("")}
+  `;
+}
+
+/* 추천 제한 */
+function like(id){
+  const key="like_"+id;
+  if(localStorage.getItem(key)) return alert("이미 추천");
+
+  fetch('/posts/'+id+'/like',{method:'POST'})
+    .then(()=>{localStorage.setItem(key,"1"); loadDetail(id);});
+}
+
+function dislike(id){
+  const key="dislike_"+id;
+  if(localStorage.getItem(key)) return alert("이미 비추천");
+
+  fetch('/posts/'+id+'/dislike',{method:'POST'})
+    .then(()=>{localStorage.setItem(key,"1"); loadDetail(id);});
+}
+
+function goBack(){
+  document.getElementById("authSelect").style.display = "block";
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("registerBox").style.display = "none";
+}
+
+/* 댓글 */
+function addComment(id){
+  fetch('/posts/'+id+'/comment',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({comment:document.getElementById("c"+id).value})
+  }).then(()=>loadDetail(id));
+}
+
+/* 삭제 */
+function deletePost(id){
+  fetch('/posts/'+id,{
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({userId:currentUser})
+  }).then(showList);
+}
+
+/* 탭 */
+function setTab(tab,e){
+  currentTab=tab;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  e.target.classList.add("active");
+  showList();
+}
+
+/* 자동 로그인 */
+window.onload=function(){
+  const user=localStorage.getItem("user");
+  const role=localStorage.getItem("role");
+
+  if(user){
+    currentUser=user;
+    currentRole=role;
+    enterBoard();
+  }
+};
+</script>
+
+</body>
+</html>
