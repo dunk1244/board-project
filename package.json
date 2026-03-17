@@ -1,0 +1,12 @@
+{
+  "name": "board-project",
+  "version": "1.0.0",
+  "description": "community board",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
